@@ -353,6 +353,12 @@ terraform destroy --auto-approve
 
 ---
 
+## 🎮 Application Output
+![Mario Game](images/mario-game-output.png)
+
+## ☸️ Kubernetes LoadBalancer Service
+![Kubernetes Service](images/kubernetes-loadbalancer-service.png)
+
 # 📦 Tech Stack
 
 * AWS EC2
