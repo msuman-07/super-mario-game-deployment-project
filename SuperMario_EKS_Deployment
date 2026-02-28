@@ -264,14 +264,3 @@ cd EKS-TF
 terraform destroy --auto-approve
 
 ########### REFER DRIVE LINK FOR MORE UNDERSTANDING ###########
-
-Quick Architecture (Understand Easily)
-EC2 → Terraform → AWS Infrastructure
-              ↓
-            EKS Cluster
-              ↓
-        Kubernetes Deployment
-              ↓
-        AWS Load Balancer
-              ↓
-            Browser
