@@ -1,0 +1,277 @@
+STEP 1 — Launch EC2 Instance
+Go to AWS Console
+EC2 → Instances → Launch Instance
+Settings
+
+AMI → Ubuntu
+Instance Type → t3.medium / c7i-flex.large
+DO NOT USE t3.micro / t3.small as they doesn't have 4 GB RAM
+Key pair → create new
+
+Security Group:
+All Traffic → Anywhere
+
+Click Launch
+
+STEP 2 — Connect to EC2
+EC2 → Select Instance → Connect → EC2 Instance Connect → Connect
+
+Now you get terminal.
+
+STEP 3 — Update System
+sudo su
+apt update -y
+
+STEP 4 — Install Docker
+apt install docker.io -y
+usermod -aG docker ubuntu
+newgrp docker
+
+Verify:
+
+docker --version
+
+STEP 5 — Install Terraform
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+
+apt update && apt install terraform -y
+
+Check:
+
+terraform -version
+STEP 6 — Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+
+apt install unzip -y
+unzip awscliv2.zip
+./aws/install
+
+Verify:
+
+aws --version
+STEP 7 — Install kubectl
+apt install curl -y
+
+curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+
+install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+Check:
+
+kubectl version --client
+STEP 8 — Create IAM Role for EC2
+Go to
+IAM → Roles → Create Role
+
+Choose:
+
+Trusted entity → EC2
+Permission → AdministratorAccess
+
+Create role → name:
+
+ec2-admin-role
+
+STEP 9 — Attach IAM Role to EC2
+EC2 → Instance → Actions → Security → Modify IAM Role
+
+Select:
+
+ec2-admin-role
+
+Click Update.
+
+STEP 10 — Clone Project
+
+Inside EC2:
+
+mkdir supermario
+cd supermario
+
+git clone https://github.com/akshu20791/supermario-game
+cd supermario-game/EKS-TF
+
+STEP 11 — Create S3 Bucket (IMPORTANT)
+
+Go AWS:
+
+S3 → Create Bucket
+
+Example name:
+
+suman-terraform-state
+
+Remember:
+
+bucket name
+
+region
+
+STEP 12 — Edit Terraform Backend
+
+In EC2:
+
+vim backend.tf
+
+Replace:
+
+bucket = "YOUR_BUCKET_NAME"
+region = "YOUR_REGION"
+
+Save:
+
+ESC → :wq
+
+STEP 13 — Create Infrastructure
+terraform init
+terraform validate
+terraform plan
+terraform apply --auto-approve
+
+Wait 10–15 minutes.
+
+This creates:
+
+VPC
+EKS cluster
+Node groups
+Load balancer
+
+#################################################################################################################################################
+
+If you are using Free tier AWS Account and using “c7i-flex.large” for EC2 then we must force terraform to use “c7i-flex.large” for EKS Node Group.
+
+So, we must update terraform config -
+
+STEP 1 - Go to Terraform Folder
+
+In your EC2 terminal -
+cd ~/supermario/supermario-game/EKS-TF
+
+
+STEP 2 — Open main.tf -
+vim main.tf
+
+STEP 3 — Find Node Group Section - 
+Search inside file:
+aws_eks_node_group
+
+Press in vim:
+/aws_eks_node_group
+
+You will see something like:
+instance_types = ["t3.medium"]
+or
+instance_type = "t2.micro"
+
+STEP 4 — Change to c7i-flex.large - 
+
+Replace with:
+instance_types = ["c7i-flex.large"]
+
+STEP 5 — Check Set Scaling -
+
+Inside same block ensure:
+scaling_config {
+ desired_size = 1
+ max_size     = 2
+ min_size     = 1
+}
+
+STEP 6 — Save File
+
+ESC
+:wq
+
+Now Clean Previous Failed Resources - 
+Your previous apply failed must be destroyed first -
+
+terraform destroy --auto-approve
+
+If terraform destroy fails then run this - 
+
+terraform refresh
+terraform destroy --auto-approve
+
+Recreate new Infrastructure again-
+
+terraform init
+terraform apply --auto-approve
+
+Now AWS will launch in “c7i-flex.large” worker node and not in “t3.medium” or “t2.micro”.
+
+#################################################################################################################################################
+
+STEP 14 — Configure Kubernetes
+
+aws eks update-kubeconfig --name EKS_CLOUD --region us-east-1
+
+# ensure that you take care of the region you are working in: (Change the region accordingly)
+
+kubectl get nodes
+
+# You will see STATUS = Ready
+If nodes show → cluster working.
+(If not ready, wait 2–3 minutes and retry.)
+
+
+STEP 15 — Creation of deployment and service for EKS
+
+change the directory where deployment and service files are stored use the command → 
+
+cd ..
+ls
+
+#you should see 2 yaml files
+
+create the deployment -
+
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+
+Check:
+
+kubectl get all
+
+
+STEP 16 — Get Load Balancer URL (VERY IMPORTANT)
+
+kubectl describe service mario-service
+
+Look for:
+
+LoadBalancer Ingress: xxxxxxxxx.amazonaws.com
+
+STEP 17 — Open in Browser
+
+Copy and open:
+
+http://<load-balancer-url>
+
+MUST use:
+
+http (not https)
+
+You will see Mario game.
+
+STEP 18 — Delete Infrastructure (After Learning)
+
+To avoid AWS charges:
+
+cd EKS-TF
+terraform destroy --auto-approve
+
+########### REFER DRIVE LINK FOR MORE UNDERSTANDING ###########
+
+Quick Architecture (Understand Easily)
+EC2 → Terraform → AWS Infrastructure
+              ↓
+            EKS Cluster
+              ↓
+        Kubernetes Deployment
+              ↓
+        AWS Load Balancer
+              ↓
+            Browser
