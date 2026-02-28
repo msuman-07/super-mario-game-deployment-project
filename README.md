@@ -375,7 +375,14 @@ terraform destroy --auto-approve
 
 ---
 
+## 📂 Project Resources
+
+For detailed explanation, screenshots, and additional documentation:
+
+🔗 [View Complete Project Documentation](https://docs.google.com/document/d/1Z0CM-oylXtHusqfA8H3m7F4qdVbic-N6XDIfDj5qN9Y/view)
+
 # 👨‍💻 Author
 
 **Suman M**
-AI Graduate
+
+AI & DS Graduate
