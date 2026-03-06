@@ -148,8 +148,8 @@ So, we must update terraform config -
 STEP 1 - Go to Terraform Folder
 
 In your EC2 terminal -
-cd ~/supermario/supermario-game/EKS-TF
-
+exit   ---> (Now you will see either ubuntu@ip-xxxxx / root)
+cd ~/supermario/supermario-game/EKS-TF  ---> (Come to this directory)
 
 STEP 2 — Open main.tf -
 vim main.tf
